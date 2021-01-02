@@ -1,0 +1,63 @@
+--2
+ALTER TABLE `gender` ADD FOREIGN KEY ( `id` ) REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT ;
+ALTER TABLE `likes` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
+ALTER TABLE `target_types` ADD FOREIGN KEY (`id`) REFERENCES `likes` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
+ALTER TABLE `user_statuses` ADD FOREIGN KEY (`id`) REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
+ALTER TABLE `contacts` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
+user_id
+
+
+--3 Определить кто больше поставил лайков (всего) - мужчины или женщины?
+SELECT (SUM( gender = 'f' ) AS `Female` , SUM( gender = 'm' ) AS `Male`)
+FROM gender
+
+SELECT SUM( gender = 'f' ) AS `Female` , SUM( gender = 'm' ) AS `Male`
+FROM gender, likes
+WHERE gender.id = likes.user_id
+
+
+
+--4Подсчитать количество лайков которые получили 10 самых молодых пользователей.
+SELECT COUNT(*) as total_likes FROM likes WHERE id IN (
+	SELECT * FROM (
+         	SELECT user_id FROM profiles ORDER by birthday DESC LIMIT 10
+		) as user_id	
+);
+
+--5Найти 10 пользователей, которые проявляют наименьшую активность в использовании социальной сети (критерии активности необходимо определить самостоятельно).
+-наименьшее количество лайков, постов, сообщений и предложений дружить в обе стороны
+SELECT id, SUM(activite) as total_activite FROM (
+	SELECT * FROM (
+		(SELECT id,0 as activite FROM users WHERE id NOT IN (SELECT user_id FROM media GROUP by user_id))
+		UNION
+		(SELECT user_id as id, COUNT(*) as activite FROM media as m GROUP by user_id)
+	) as max_media
+	UNION ALL
+	SELECT * FROM (
+		(SELECT id,0 as activite FROM users WHERE id NOT IN (SELECT from_user_id FROM messages GROUP by from_user_id))
+		UNION
+		(SELECT from_user_id as id, COUNT(*) as activite FROM messages GROUP by from_user_id)
+	) as max_messages
+	UNION ALL
+	SELECT * FROM (
+		(SELECT id,0 as activite FROM users WHERE id NOT IN (SELECT user_id FROM posts GROUP by user_id))
+		UNION
+		(SELECT user_id as id, COUNT(*) as activite FROM posts GROUP by user_id)	
+	) as max_posts
+	UNION ALL
+	SELECT * FROM (
+		(SELECT id,0 as activite FROM users WHERE id NOT IN (SELECT user_id FROM likes GROUP by user_id))
+		UNION
+		(SELECT user_id as id, COUNT(*) as activite FROM likes GROUP by user_id)
+	) as max_likes	
+        UNION ALL
+	SELECT * FROM (
+		(SELECT id,0 as activite FROM users WHERE id NOT IN (SELECT user_id FROM friendship GROUP by user_id))
+		UNION
+		(SELECT user_id as id, COUNT(*) as activite FROM friendship GROUP by user_id)
+	) as max_likes	
+) as max_table
+GROUP by id
+ORDER by total_activite
+LIMIT 10
+;
