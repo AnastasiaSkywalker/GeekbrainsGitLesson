@@ -1,2 +1,0 @@
-# GeekbrainsGitLesson
-for homework
